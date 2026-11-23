@@ -1,13 +1,15 @@
-const pool = require("../config/bd");
+const pool = require('../config/bd');
 
 const obtenerTodos = async () => {
-  const [rows] = await pool.query("SELECT * FROM pedidos");
+  const [rows] = await pool.query(
+    'SELECT id_pedido, id_cliente, id_empleado, fecha_pedido, canal FROM pedidos'
+  );
   return rows;
 };
 
 const obtenerPorId = async (id) => {
   const [rows] = await pool.query(
-    "SELECT * FROM pedidos WHERE id_pedido = ?",
+    'SELECT id_pedido, id_cliente, id_empleado, fecha_pedido, canal FROM pedidos WHERE id_pedido = ?',
     [id]
   );
   return rows[0] || null;
@@ -18,42 +20,54 @@ const obtenerConCliente = async () => {
     SELECT
       p.id_pedido,
       p.fecha_pedido,
-      p.estado,
-      p.total,
+      p.canal,
       p.id_cliente,
-      c.nombre AS nombre_cliente
+      c.nombre AS nombre_cliente,
+      c.ciudad
     FROM pedidos p
     INNER JOIN clientes c ON p.id_cliente = c.id_cliente
   `);
   return rows;
 };
 
-const crear = async ({ id_cliente, fecha_pedido = null, estado = "pendiente", total = 0 }) => {
-  const fechaFinal = fecha_pedido || new Date();
+const crear = async ({
+  id_pedido = null,
+  id_cliente = null,
+  id_empleado = null,
+  fecha_pedido,
+  canal,
+}) => {
+  if (id_pedido !== null) {
+    await pool.query(
+      'INSERT INTO pedidos (id_pedido, id_cliente, id_empleado, fecha_pedido, canal) VALUES (?, ?, ?, ?, ?)',
+      [id_pedido, id_cliente, id_empleado, fecha_pedido, canal]
+    );
+    return { id_pedido, id_cliente, id_empleado, fecha_pedido, canal };
+  }
   const [result] = await pool.query(
-    "INSERT INTO pedidos (id_cliente, fecha_pedido, estado, total) VALUES (?, ?, ?, ?)",
-    [id_cliente, fechaFinal, estado, total]
+    'INSERT INTO pedidos (id_cliente, id_empleado, fecha_pedido, canal) VALUES (?, ?, ?, ?)',
+    [id_cliente, id_empleado, fecha_pedido, canal]
   );
   return {
     id_pedido: result.insertId,
     id_cliente,
-    fecha_pedido: fechaFinal,
-    estado,
-    total,
+    id_empleado,
+    fecha_pedido,
+    canal,
   };
 };
 
-const actualizar = async (id, { id_cliente, fecha_pedido, estado, total }) => {
+const actualizar = async (id, { id_cliente = null, id_empleado = null, fecha_pedido, canal }) => {
   const [result] = await pool.query(
-    "UPDATE pedidos SET id_cliente = ?, fecha_pedido = ?, estado = ?, total = ? WHERE id_pedido = ?",
-    [id_cliente, fecha_pedido, estado, total, id]
+    'UPDATE pedidos SET id_cliente = ?, id_empleado = ?, fecha_pedido = ?, canal = ? WHERE id_pedido = ?',
+    [id_cliente, id_empleado, fecha_pedido, canal, id]
   );
   return result.affectedRows > 0;
 };
 
 const eliminar = async (id) => {
   const [result] = await pool.query(
-    "DELETE FROM pedidos WHERE id_pedido = ?",
+    'DELETE FROM pedidos WHERE id_pedido = ?',
     [id]
   );
   return result.affectedRows > 0;

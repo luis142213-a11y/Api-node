@@ -1,19 +1,21 @@
-const pool = require("../config/bd");
+const pool = require('../config/bd');
 
 const obtenerTodos = async () => {
-  const [rows] = await pool.query("SELECT * FROM detalle_pedido");
+  const [rows] = await pool.query(
+    'SELECT id_detalle, id_pedido, id_producto, cantidad, precio_unitario FROM detalle_pedido'
+  );
   return rows;
 };
 
 const obtenerPorId = async (id) => {
   const [rows] = await pool.query(
-    "SELECT * FROM detalle_pedido WHERE id_detalle = ?",
+    'SELECT id_detalle, id_pedido, id_producto, cantidad, precio_unitario FROM detalle_pedido WHERE id_detalle = ?',
     [id]
   );
   return rows[0] || null;
 };
 
-// Detalle de un pedido con nombre de producto, cantidad y precio (INNER JOIN de 3 tablas)
+// Detalle de un pedido: nombre de producto, cantidad y precio (INNER JOIN detalle_pedido + productos + pedidos)
 const obtenerPorPedido = async (idPedido) => {
   const [rows] = await pool.query(
     `
@@ -52,9 +54,22 @@ const obtenerResumenVentasPorProducto = async () => {
   return rows;
 };
 
-const crear = async ({ id_pedido, id_producto, cantidad, precio_unitario }) => {
+const crear = async ({
+  id_detalle = null,
+  id_pedido,
+  id_producto,
+  cantidad,
+  precio_unitario,
+}) => {
+  if (id_detalle !== null) {
+    await pool.query(
+      'INSERT INTO detalle_pedido (id_detalle, id_pedido, id_producto, cantidad, precio_unitario) VALUES (?, ?, ?, ?, ?)',
+      [id_detalle, id_pedido, id_producto, cantidad, precio_unitario]
+    );
+    return { id_detalle, id_pedido, id_producto, cantidad, precio_unitario };
+  }
   const [result] = await pool.query(
-    "INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_unitario) VALUES (?, ?, ?, ?)",
+    'INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_unitario) VALUES (?, ?, ?, ?)',
     [id_pedido, id_producto, cantidad, precio_unitario]
   );
   return {
@@ -68,7 +83,7 @@ const crear = async ({ id_pedido, id_producto, cantidad, precio_unitario }) => {
 
 const actualizar = async (id, { id_pedido, id_producto, cantidad, precio_unitario }) => {
   const [result] = await pool.query(
-    "UPDATE detalle_pedido SET id_pedido = ?, id_producto = ?, cantidad = ?, precio_unitario = ? WHERE id_detalle = ?",
+    'UPDATE detalle_pedido SET id_pedido = ?, id_producto = ?, cantidad = ?, precio_unitario = ? WHERE id_detalle = ?',
     [id_pedido, id_producto, cantidad, precio_unitario, id]
   );
   return result.affectedRows > 0;
@@ -76,7 +91,7 @@ const actualizar = async (id, { id_pedido, id_producto, cantidad, precio_unitari
 
 const eliminar = async (id) => {
   const [result] = await pool.query(
-    "DELETE FROM detalle_pedido WHERE id_detalle = ?",
+    'DELETE FROM detalle_pedido WHERE id_detalle = ?',
     [id]
   );
   return result.affectedRows > 0;
